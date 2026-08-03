@@ -4,9 +4,20 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import groupRoutes from "./routes/group.routes.js";
-const app = express();
+import expenseRoutes from "./routes/expense.routes.js";
+import balanceRoutes from "./routes/balance.routes.js";
+import morgan from "morgan";
 
-app.use(cors());
+const app = express();
+app.use(morgan("dev"));
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -14,5 +25,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/balances", balanceRoutes);
 
 export default app;

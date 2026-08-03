@@ -1,6 +1,35 @@
+import User from "../models/User.js";
+
 export const getProfile = async (req, res) => {
   res.status(200).json({
     success: true,
     user: req.user,
   });
+};
+
+export const searchUsers = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const users = await User.find({
+      email: { $regex: email, $options: "i" },
+    }).select("-password");
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
