@@ -38,7 +38,7 @@ export const updateProfile = async (req, res) => {
   try {
     const { fullName } = req.body;
 
-    if (!fulName) {
+    if (!fullName) {
       return res.status(400).json({
         success: false,
         message: "Fullname Is required",
