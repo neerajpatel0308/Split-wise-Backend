@@ -7,9 +7,15 @@ import groupRoutes from "./routes/group.routes.js";
 import expenseRoutes from "./routes/expense.routes.js";
 import balanceRoutes from "./routes/balance.routes.js";
 import settlementRoutes from "./models/Settlement.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import morgan from "morgan";
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 app.use(morgan("dev"));
 
 app.use(
@@ -29,5 +35,6 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/balances", balanceRoutes);
 app.use("/api/settlements", settlementRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 export default app;

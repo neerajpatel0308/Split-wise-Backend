@@ -63,3 +63,37 @@ export const updateProfile = async (req, res) => {
     });
   }
 };
+
+export const updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload an image",
+      });
+    }
+
+    const avatar = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        avatar,
+      },
+      {
+        new: true,
+      },
+    ).select("-password");
+
+    res.status(200).json({
+      success: true,
+      message: "Avatar updated successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
