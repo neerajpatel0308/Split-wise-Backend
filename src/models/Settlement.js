@@ -31,12 +31,11 @@ const settlementSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", completed],
+      enum: ["pending", "completed"],
       default: "pending",
     },
 
     settledAt: Date,
-    default: null,
   },
 
   {
