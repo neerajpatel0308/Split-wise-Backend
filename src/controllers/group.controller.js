@@ -4,7 +4,7 @@ import User from "../models/User.js";
 
 export const createGroup = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, members = [] } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -13,11 +13,14 @@ export const createGroup = async (req, res) => {
       });
     }
 
+    // Add creator automatically and remove duplicates
+    const allMembers = [...new Set([req.user._id.toString(), ...members])];
+
     const group = await Group.create({
       name,
       description,
       createdBy: req.user._id,
-      members: [req.user._id], // Creator becomes first member
+      members: allMembers,
     });
 
     res.status(201).json({
