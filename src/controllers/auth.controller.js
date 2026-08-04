@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import { OAuth2Client } from "google-auth-library";
 import generateToken from "../utils/generateToken.js";
 import generateOTP from "../utils/generateOTP.js";
+import { cookieOptions } from "../config/cookie.js";
 
 export const register = async (req, res) => {
   try {
@@ -235,11 +236,11 @@ export const resendOTP = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  console.log("Logging out user:", req.user);
-  res.clearCookie("token", {
+  res.clearCookie("token", token, {
     httpOnly: true,
     secure: false,
     sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.status(200).json({
@@ -261,7 +262,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export const googleLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
-    console.log("Google login credential:", idToken);
+    // console.log("Google login credential:", idToken);
 
     if (!idToken) {
       return res.status(400).json({
@@ -292,12 +293,7 @@ export const googleLogin = async (req, res) => {
     }
 
     const token = generateToken(user._id);
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, cookieOptions);
     console.log("Here is the token : ", token);
 
     return res.status(200).json({
