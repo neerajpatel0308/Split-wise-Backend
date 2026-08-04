@@ -1,11 +1,11 @@
 import express from "express";
 import upload from "../middleware/upload.middleware.js";
-import { updateAvatar } from "../controllers/user.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 import {
   getProfile,
   searchUsers,
   updateProfile,
+  updateAvatar,
 } from "../controllers/user.controller.js";
 
 const router = express.Router();
