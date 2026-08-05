@@ -286,6 +286,7 @@ export const googleLogin = async (req, res) => {
         fullName: payload.name,
         email: payload.email,
         avatar: payload.picture,
+        googleId: payload.sub,
         isVerified: true,
         password: crypto.randomUUID(),
       });

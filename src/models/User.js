@@ -26,12 +26,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
   },
   {
     timestamps: true,
   },
 );
-
 // Hash password before saving
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
