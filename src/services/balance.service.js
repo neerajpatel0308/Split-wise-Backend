@@ -23,9 +23,7 @@ export const calculateBalances = async (groupId) => {
   const balances = initializeBalances(group.members);
 
   expenses.forEach((expense) => {
-    console.log("Expense:", expense);
     addPayment(balances, expense.paidBy, expense.amount);
-
     addOwedAmount(balances, expense.participants);
   });
 

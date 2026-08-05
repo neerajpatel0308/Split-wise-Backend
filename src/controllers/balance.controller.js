@@ -1,9 +1,11 @@
-import { calculateFinalBalances } from "../utils/balance.utils.js";
+import { calculateBalances } from "../services/balance.service.js";
 
 export const getBalances = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const balances = await calculateFinalBalances(groupId);
+
+    const balances = await calculateBalances(groupId);
+
     res.status(200).json({
       success: true,
       balances,
