@@ -19,7 +19,7 @@ const router = express.Router();
 router.post("/google", googleLogin);
 // router.post("/register", register);
 // router.post("/login", login);
-router.post("/logout", logout);
+router.post("/logout", protect, logout);
 // router.post("/verify-email", verifyEmail);
 router.post("/resend-otp", resendOTP);
 router.get("/verify-token", protect, verifyToken);
