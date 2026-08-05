@@ -16,13 +16,13 @@ import {
 
 const router = express.Router();
 
-router.post("/google", googleLogin);
 // router.post("/register", register);
 // router.post("/login", login);
 router.post("/logout", protect, logout);
 // router.post("/verify-email", verifyEmail);
 router.post("/resend-otp", resendOTP);
 router.get("/verify-token", protect, verifyToken);
+router.post("/google", googleLogin);
 router.get("/check", protect, checkAuth);
 // router.get("/me", protect, getCurrentUser);
 

@@ -236,7 +236,7 @@ export const resendOTP = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie("token", token, {
+  res.clearCookie("token", {
     httpOnly: true,
     secure: false,
     sameSite: "lax",
