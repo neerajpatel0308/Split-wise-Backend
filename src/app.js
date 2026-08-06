@@ -8,6 +8,7 @@ import expenseRoutes from "./routes/expense.routes.js";
 import balanceRoutes from "./routes/balance.routes.js";
 import settlementRoutes from "./models/Settlement.js";
 import path from "path";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import { fileURLToPath } from "url";
 
 import morgan from "morgan";
@@ -36,5 +37,6 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/balances", balanceRoutes);
 app.use("/api/settlements", settlementRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+app.use("/api/dashboard", dashboardRoutes);
 
 export default app;

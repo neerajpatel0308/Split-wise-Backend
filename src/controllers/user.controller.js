@@ -9,7 +9,8 @@ export const getProfile = async (req, res) => {
 
 export const searchUsers = async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email } = req.body;
+    console.log(email);
 
     if (!email) {
       return res.status(400).json({

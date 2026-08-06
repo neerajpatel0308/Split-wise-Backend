@@ -4,10 +4,10 @@ import { checkAuth } from "../controllers/auth.controller.js";
 
 import express from "express";
 import {
-  // register,
+  register,
   login,
   logout,
-  // verifyEmail,
+  verifyEmail,
   resendOTP,
   verifyToken,
   googleLogin,
@@ -16,10 +16,10 @@ import {
 
 const router = express.Router();
 
-// router.post("/register", register);
+router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", protect, logout);
-// router.post("/verify-email", verifyEmail);
+router.post("/verify-email", verifyEmail);
 router.post("/resend-otp", resendOTP);
 router.get("/verify-token", protect, verifyToken);
 router.post("/google", googleLogin);

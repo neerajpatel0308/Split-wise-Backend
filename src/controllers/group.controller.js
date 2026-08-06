@@ -116,3 +116,30 @@ export const addMember = async (req, res) => {
     });
   }
 };
+
+export const getGroupById = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId)
+      .populate("createdBy", "fullName email avatar")
+      .populate("members", "fullName email avatar");
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Group not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      group,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

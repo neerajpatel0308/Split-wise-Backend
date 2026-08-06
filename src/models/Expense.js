@@ -13,10 +13,19 @@ const splitSchema = new mongoose.Schema(
       default: 0,
     },
 
-    percentage: {
-      type: Number,
-      default: 0,
-    },
+    // equal: {
+    //   type: Number,
+    //   default: 0,
+    // },
+    // exact: {
+    //   type: Number,
+    //   default: 0,
+    // },
+
+    // percentage: {
+    //   type: Number,
+    //   default: 0,
+    // },
 
     paid: {
       type: Boolean,

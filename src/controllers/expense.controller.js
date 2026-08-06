@@ -1,14 +1,28 @@
 import Expense from "../models/Expense.js";
 import Group from "../models/Group.js";
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
 
 export const createExpense = async (req, res) => {
   try {
-    const { title, description, amount, groupId, splitType, participants } =
-      req.body;
+    const {
+      title,
+      description,
+      amount,
+      groupId,
+      paidBy,
+      splitType,
+      participants,
+    } = req.body;
 
     // Validation
-    if (!title || !amount || !groupId || !participants?.length) {
+    if (
+      !title ||
+      !amount ||
+      !groupId ||
+      !paidBy ||
+      !splitType ||
+      !participants?.length
+    ) {
       return res.status(400).json({
         success: false,
         message: "All required fields are mandatory.",
@@ -27,9 +41,7 @@ export const createExpense = async (req, res) => {
 
     // Check if current user belongs to the group
     if (
-      !group.members.some(
-        (member) => member.toString() === req.user._id.toString(),
-      )
+      !group.members.some((member) => member.toString() === paidBy.toString())
     ) {
       return res.status(403).json({
         success: false,
@@ -37,7 +49,7 @@ export const createExpense = async (req, res) => {
       });
     }
     console.log("Request Body:", req.body);
-    console.log("Logged in User:", req.user);
+    console.log("Paid By:", paidBy);
 
     let finalParticipants = [];
     if (splitType === "equal") {
@@ -68,15 +80,34 @@ export const createExpense = async (req, res) => {
         amount: Number(((amount * participant.percentage) / 100).toFixed(2)),
         paid: false,
       }));
+    } else if (splitType === "exact") {
+      const totalAmount = participants.reduce(
+        (sum, participant) => sum + Number(participant.amount),
+        0,
+      );
+
+      if (totalAmount !== Number(amount)) {
+        return res.status(400).json({
+          success: false,
+          message: "Participant amounts must equal total expense.",
+        });
+      }
+
+      finalParticipants = participants.map((participant) => ({
+        user: participant.user,
+        amount: participant.amount,
+        percentage: 0,
+        paid: false,
+      }));
     }
 
     const expense = await Expense.create({
       title,
       description,
       amount,
-      paidBy: req.user._id,
+      paidBy,
       group: groupId,
-      splitType: "percentage",
+      splitType,
       participants: finalParticipants,
     });
 

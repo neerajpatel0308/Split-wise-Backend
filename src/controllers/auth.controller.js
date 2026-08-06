@@ -54,7 +54,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    cosnole.log("Logging in user:", { email, password });
+    console.log("Logging in user:", { email, password });
 
     const user = await User.findOne({ email });
 
@@ -128,12 +128,12 @@ export const verifyEmail = async (req, res) => {
 
     if (user.isVerified) {
       return res.status(400).json({
-        success: false,
+        success: true,
         message: "Email already verified",
       });
     }
 
-    if (user.verificationOTP !== otp) {
+    if (String(user.verificationOTP) !== String(otp)) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP",
