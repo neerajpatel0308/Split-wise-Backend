@@ -79,3 +79,57 @@ export const createSettlement = async (req, res) => {
     });
   }
 };
+
+export const updateSettlement = async (req, res) => {
+  try {
+    const settlement = await Settlement.findById(req.params.settlementId);
+
+    if (!settlement) {
+      return res.status(404).json({
+        success: false,
+        message: "Settlement not found",
+      });
+    }
+
+    settlement.status = "completed";
+    settlement.settledAt = new Date();
+
+    await settlement.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Settlement completed",
+      settlement,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getSettlement = async (req, res) => {
+  try {
+    const settlement = await Settlement.findById(req.params.settlementId)
+      .populate("payer", "fullName email")
+      .populate("receiver", "fullName email");
+
+    if (!settlement) {
+      return res.status(404).json({
+        success: false,
+        message: "Settlement not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      settlement,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

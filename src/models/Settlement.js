@@ -13,7 +13,7 @@ const settlementSchema = new mongoose.Schema(
       required: true,
     },
 
-    recevier: {
+    receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,

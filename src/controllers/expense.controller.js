@@ -124,6 +124,67 @@ export const createExpense = async (req, res) => {
   }
 };
 
+export const updateExpense = async (req, res) => {
+  try {
+    const { expenseId } = req.params;
+    const { title, description, amount, splitType, paidBy } = req.body;
+
+    const expense = await Expense.findById(expenseId);
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: "Expense not found.",
+      });
+    }
+
+    // Only creator can update
+    if (expense.paidBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to update this expense.",
+      });
+    }
+
+    if (title !== undefined) expense.title = title;
+    if (description !== undefined) expense.description = description;
+    if (amount !== undefined) expense.amount = amount;
+    if (splitType !== undefined) expense.splitType = splitType;
+
+    if (amount !== undefined) {
+      if (expense.splitType === "equal") {
+        const share = Number(
+          (expense.amount / expense.participants.length).toFixed(2),
+        );
+
+        expense.participants.forEach((participant) => {
+          participant.amount = share;
+        });
+      }
+
+      if (expense.splitType === "percentage") {
+        expense.participants.forEach((participant) => {
+          participant.amount = Number(
+            ((expense.amount * participant.percentage) / 100).toFixed(2),
+          );
+        });
+      }
+    }
+
+    await expense.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Expense updated successfully.",
+      expense,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 export const getExpensesByGroup = async (req, res) => {
   try {
     const { groupId } = req.params;

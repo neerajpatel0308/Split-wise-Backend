@@ -6,7 +6,7 @@ import userRoutes from "./routes/user.routes.js";
 import groupRoutes from "./routes/group.routes.js";
 import expenseRoutes from "./routes/expense.routes.js";
 import balanceRoutes from "./routes/balance.routes.js";
-import settlementRoutes from "./models/Settlement.js";
+import settlementRoutes from "./routes/settlement.routes.js";
 import path from "path";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import { fileURLToPath } from "url";
