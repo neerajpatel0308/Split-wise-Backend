@@ -20,13 +20,27 @@ export const initializeBalances = (members) => {
 
 // Add payment made by expense creator
 export const addPayment = (balances, paidBy, amount) => {
-  balances[paidBy.toString()].paid += amount;
+  const key = paidBy.toString();
+
+  if (!balances[key]) {
+    console.log("Payer not found in balances:", key);
+    return;
+  }
+
+  balances[key].paid += amount;
 };
 
 // Add amount owed by each participant
 export const addOwedAmount = (balances, participants) => {
   participants.forEach((participant) => {
-    balances[participant.user.toString()].owes += participant.amount;
+    const key = participant.user.toString();
+
+    if (!balances[key]) {
+      console.log("Participant not found in balances:", key);
+      return;
+    }
+
+    balances[key].owes += participant.amount;
   });
 };
 

@@ -11,6 +11,7 @@ export const getBalances = async (req, res) => {
       balances,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: error.message,

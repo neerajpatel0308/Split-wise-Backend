@@ -9,22 +9,25 @@ export const getProfile = async (req, res) => {
 
 export const searchUsers = async (req, res) => {
   try {
-    const { email } = req.body;
-    console.log(email);
+    const { query } = req.query;
 
-    if (!email) {
+    if (!query) {
       return res.status(400).json({
         success: false,
-        message: "Email is required",
+        message: "Search query is required.",
       });
     }
 
     const users = await User.find({
-      email: { $regex: email, $options: "i" },
-    }).select("-password");
+      $or: [
+        { fullName: { $regex: query, $options: "i" } },
+        { email: { $regex: query, $options: "i" } },
+      ],
+    }).select("_id fullName email avatar");
 
     res.status(200).json({
       success: true,
+      count: users.length,
       users,
     });
   } catch (error) {

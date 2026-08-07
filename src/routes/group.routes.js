@@ -4,6 +4,7 @@ import {
   getGroups,
   getGroupById,
   addMember,
+  getGroupDashboard,
 } from "../controllers/group.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
@@ -13,5 +14,6 @@ router.get("/", protect, getGroups);
 router.get("/:grouId", protect, getGroupById);
 
 router.post("/:groupId/members", protect, addMember);
+router.get("/:groupId/dashboard", protect, getGroupDashboard);
 
 export default router;

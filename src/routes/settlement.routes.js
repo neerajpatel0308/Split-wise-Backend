@@ -1,6 +1,6 @@
 import express from "express";
-import { createSettlement } from "../controllers/settlement.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
+import { createSettlement } from "../controllers/settlement.controller.js";
 
 const router = express.Router();
 
