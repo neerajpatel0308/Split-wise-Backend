@@ -36,18 +36,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-
-    verificationOTP: {
-      type: String,
-    },
-
-    verificationOTPExpires: {
-      type: Date,
-    },
-
-    otpResendAvailableAt: {
-      type: Date,
-    },
   },
   {
     timestamps: true,

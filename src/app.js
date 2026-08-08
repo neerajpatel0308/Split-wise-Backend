@@ -10,6 +10,7 @@ import settlementRoutes from "./routes/settlement.routes.js";
 import path from "path";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import { fileURLToPath } from "url";
+// import transporter from "./config/mail.js";
 
 import morgan from "morgan";
 
