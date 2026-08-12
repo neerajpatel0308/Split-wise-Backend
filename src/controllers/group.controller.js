@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 import Group from "../models/Group.js";
 import User from "../models/User.js";
-
 export const createGroup = async (req, res) => {
   try {
     const { name, description, members = [] } = req.body;
 
+    // -------------------------
+    // VALIDATION
+    // -------------------------
     if (!name) {
       return res.status(400).json({
         success: false,
@@ -13,23 +15,57 @@ export const createGroup = async (req, res) => {
       });
     }
 
-    // Add creator automatically and remove duplicates
-    const allMembers = [...new Set([req.user._id.toString(), ...members])];
+    // -------------------------
+    // ADD LOGGED-IN USER
+    // -------------------------
+    const allMemberIds = [
+      req.user._id.toString(),
+      ...members.map((id) => id.toString()),
+    ];
 
+    // Remove duplicate members
+    const uniqueMemberIds = [...new Set(allMemberIds)];
+
+    // -------------------------
+    // CHECK MEMBERS EXIST
+    // -------------------------
+    const users = await User.find({
+      _id: { $in: uniqueMemberIds },
+    }).select("_id");
+
+    if (users.length !== uniqueMemberIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "One or more selected members do not exist.",
+      });
+    }
+
+    // -------------------------
+    // CREATE GROUP
+    // -------------------------
     const group = await Group.create({
       name,
-      description,
+      description: description || "",
       createdBy: req.user._id,
-      members: allMembers,
+      members: uniqueMemberIds,
     });
 
-    res.status(201).json({
+    // -------------------------
+    // POPULATE MEMBERS
+    // -------------------------
+    const populatedGroup = await Group.findById(group._id)
+      .populate("createdBy", "fullName email")
+      .populate("members", "fullName email");
+
+    return res.status(201).json({
       success: true,
       message: "Group created successfully",
-      group,
+      group: populatedGroup,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("CREATE GROUP ERROR:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
