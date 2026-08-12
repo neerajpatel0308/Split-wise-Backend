@@ -1,5 +1,6 @@
 import Group from "../models/Group.js";
 import Expense from "../models/Expense.js";
+import Settlement from "../models/Settlement.js";
 
 import {
   initializeBalances,
@@ -16,26 +17,48 @@ export const calculateBalances = async (groupId) => {
     "fullName email",
   );
 
-  console.log("Group:", group);
-
   if (!group) {
     throw new Error("Group not found");
   }
 
-  const expenses = await Expense.find({ group: groupId });
+  const expenses = await Expense.find({
+    group: groupId,
+  });
 
-  console.log("Expenses:", expenses);
+  const settlements = await Settlement.find({
+    group: groupId,
+    status: "completed",
+  });
 
   const balances = initializeBalances(group.members);
 
-  console.log("Initial Balances:", balances);
+  // -------------------------
+  // EXPENSES
+  // -------------------------
 
   expenses.forEach((expense) => {
-    console.log("Expense:", expense);
+    addPayment(balances, expense.paidBy, Number(expense.amount));
 
-    addPayment(balances, expense.paidBy, expense.amount);
     addOwedAmount(balances, expense.participants);
   });
+
+  // -------------------------
+  // SETTLEMENTS
+  // -------------------------
+
+  settlements.forEach((settlement) => {
+    const payer = settlement.payer.toString();
+    const receiver = settlement.receiver.toString();
+    const amount = Number(settlement.amount);
+
+    // Payer paid receiver
+    balances[payer].paid += amount;
+    balances[receiver].paid -= amount;
+  });
+
+  // -------------------------
+  // FINAL BALANCE
+  // -------------------------
 
   return calculateFinalBalances(balances);
 };

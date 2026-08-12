@@ -1,29 +1,50 @@
 import Settlement from "../models/Settlement.js";
 import Group from "../models/Group.js";
+import mongoose from "mongoose";
 
 export const createSettlement = async (req, res) => {
   try {
     const { groupId, receiver, amount, note } = req.body;
 
-    // Logged in user
+    // Logged-in user
     const payer = req.user._id;
 
-    // Validation
-    if (!groupId || !receiver || !amount) {
+    // -------------------------
+    // VALIDATION
+    // -------------------------
+
+    if (!groupId || !receiver || amount === undefined) {
       return res.status(400).json({
         success: false,
         message: "Group, receiver and amount are required.",
       });
     }
 
-    if (amount <= 0) {
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid group ID.",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(receiver)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid receiver ID.",
+      });
+    }
+
+    if (Number(amount) <= 0) {
       return res.status(400).json({
         success: false,
         message: "Amount must be greater than 0.",
       });
     }
 
-    // Check group exists
+    // -------------------------
+    // FIND GROUP
+    // -------------------------
+
     const group = await Group.findById(groupId);
 
     if (!group) {
@@ -33,47 +54,74 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    // Check payer belongs to group
-    if (
-      !group.members.some((member) => member.toString() === payer.toString())
-    ) {
+    // -------------------------
+    // CHECK PAYER
+    // -------------------------
+
+    const isPayerMember = group.members.some(
+      (member) => member.toString() === payer.toString(),
+    );
+
+    if (!isPayerMember) {
       return res.status(403).json({
         success: false,
         message: "You are not a member of this group.",
       });
     }
 
-    // Check receiver belongs to group
-    if (!group.members.some((member) => member.toString() === receiver)) {
+    // -------------------------
+    // CHECK RECEIVER
+    // -------------------------
+
+    const isReceiverMember = group.members.some(
+      (member) => member.toString() === receiver.toString(),
+    );
+
+    if (!isReceiverMember) {
       return res.status(403).json({
         success: false,
         message: "Receiver is not a member of this group.",
       });
     }
 
-    // Prevent self settlement
-    if (payer.toString() === receiver) {
+    // -------------------------
+    // PREVENT SELF SETTLEMENT
+    // -------------------------
+
+    if (payer.toString() === receiver.toString()) {
       return res.status(400).json({
         success: false,
         message: "You cannot settle with yourself.",
       });
     }
 
+    // -------------------------
+    // CREATE SETTLEMENT
+    // -------------------------
+
     const settlement = await Settlement.create({
       group: groupId,
       payer,
       receiver,
-      amount,
-      note,
+      amount: Number(amount),
+      note: note || "",
+      status: "completed",
+      settledAt: new Date(),
     });
 
-    res.status(201).json({
+    // -------------------------
+    // RESPONSE
+    // -------------------------
+
+    return res.status(201).json({
       success: true,
       message: "Settlement created successfully.",
       settlement,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("CREATE SETTLEMENT ERROR:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
