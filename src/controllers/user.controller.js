@@ -19,6 +19,9 @@ export const searchUsers = async (req, res) => {
     }
 
     const users = await User.find({
+      // Don't return the logged-in user
+      _id: { $ne: req.user._id },
+
       $or: [
         { fullName: { $regex: query, $options: "i" } },
         { email: { $regex: query, $options: "i" } },
