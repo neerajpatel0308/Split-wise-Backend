@@ -5,10 +5,11 @@ import { checkAuth } from "../controllers/auth.controller.js";
 import express from "express";
 import {
   register,
+  verifyEmail,
+  verifyOTP,
+  resendOTP,
   login,
   logout,
-  verifyEmail,
-  resendOTP,
   verifyToken,
   googleLogin,
   // getCurrentUser,
@@ -17,6 +18,7 @@ import {
 const router = express.Router();
 
 router.post("/register", register);
+router.post("/verify-otp", verifyOTP);
 router.post("/verify-email", verifyEmail);
 router.post("/resend-otp", resendOTP);
 router.post("/login", login);

@@ -185,6 +185,7 @@ export const updateExpense = async (req, res) => {
     });
   }
 };
+
 export const getExpensesByGroup = async (req, res) => {
   try {
     const { groupId } = req.params;

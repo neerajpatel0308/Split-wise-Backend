@@ -12,7 +12,10 @@ export const register = async (req, res) => {
 
     console.log("Registering user:", { fullName, email });
 
-    // 1. Validate fields
+    // -------------------------
+    // VALIDATION
+    // -------------------------
+
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -20,7 +23,10 @@ export const register = async (req, res) => {
       });
     }
 
-    // 2. Check existing user
+    // -------------------------
+    // CHECK EXISTING USER
+    // -------------------------
+
     const userExists = await User.findOne({ email });
 
     if (userExists) {
@@ -30,34 +36,48 @@ export const register = async (req, res) => {
       });
     }
 
-    // 3. Generate OTP
+    // -------------------------
+    // GENERATE OTP
+    // -------------------------
+
     const otp = generateOTP();
 
-    // 4. OTP expires in 10 minutes
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    // 5. Create user
-    const user = await User.create({
+    const resendAvailableAt = new Date(Date.now() + 60 * 1000);
+
+    // -------------------------
+    // DELETE OLD OTP
+    // -------------------------
+
+    await OTP.deleteMany({ email });
+
+    // -------------------------
+    // STORE TEMPORARY REGISTRATION
+    // -------------------------
+
+    await OTP.create({
       fullName,
       email,
       password,
-      isVerified: false,
-    });
-
-    // 6. Save OTP separately
-    await OTP.create({
-      email,
       otp,
       expiresAt: otpExpiry,
+      otpResendAvailableAt: resendAvailableAt,
     });
 
-    // 7. Send OTP to Gmail
+    // -------------------------
+    // SEND OTP
+    // -------------------------
+
     await sendOTPEmail(email, otp);
 
-    // 8. Response
+    // -------------------------
+    // RESPONSE
+    // -------------------------
+
     return res.status(201).json({
       success: true,
-      message: "Registration successful. OTP sent to your email.",
+      message: "OTP sent to your email. Please verify your email.",
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -69,6 +89,110 @@ export const register = async (req, res) => {
   }
 };
 
+export const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // -------------------------
+    // VALIDATION
+    // -------------------------
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required.",
+      });
+    }
+
+    // -------------------------
+    // FIND OTP
+    // -------------------------
+
+    const otpRecord = await OTP.findOne({
+      email,
+      otp,
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP.",
+      });
+    }
+
+    // -------------------------
+    // CHECK EXPIRY
+    // -------------------------
+
+    if (otpRecord.expiresAt < new Date()) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired. Please request a new OTP.",
+      });
+    }
+
+    // -------------------------
+    // CHECK USER AGAIN
+    // -------------------------
+
+    const existingUser = await User.findOne({
+      email,
+    });
+
+    if (existingUser) {
+      await OTP.deleteOne({
+        _id: otpRecord._id,
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: "User already exists.",
+      });
+    }
+
+    // -------------------------
+    // CREATE USER
+    // -------------------------
+
+    const user = await User.create({
+      fullName: otpRecord.fullName,
+      email: otpRecord.email,
+      password: otpRecord.password,
+      isVerified: true,
+    });
+
+    // -------------------------
+    // DELETE OTP
+    // -------------------------
+
+    await OTP.deleteOne({
+      _id: otpRecord._id,
+    });
+
+    // -------------------------
+    // RESPONSE
+    // -------------------------
+
+    return res.status(201).json({
+      success: true,
+      message: "Email verified and account created successfully.",
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("VERIFY OTP ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -202,58 +326,83 @@ export const resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // 1. Validate email
+    // -------------------------
+    // VALIDATION
+    // -------------------------
+
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: "Email is required",
+        message: "Email is required.",
       });
     }
 
-    // 2. Find user
-    const user = await User.findOne({ email });
+    // -------------------------
+    // FIND TEMPORARY OTP RECORD
+    // -------------------------
 
-    if (!user) {
+    const otpRecord = await OTP.findOne({ email });
+
+    if (!otpRecord) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: "Registration not found. Please register again.",
       });
     }
 
-    // 3. Check if already verified
-    if (user.isVerified) {
-      return res.status(400).json({
+    // -------------------------
+    // RATE LIMIT
+    // -------------------------
+
+    if (
+      otpRecord.otpResendAvailableAt &&
+      otpRecord.otpResendAvailableAt > new Date()
+    ) {
+      const remainingSeconds = Math.ceil(
+        (otpRecord.otpResendAvailableAt.getTime() - Date.now()) / 1000,
+      );
+
+      return res.status(429).json({
         success: false,
-        message: "Email is already verified",
+        message: `Please wait ${remainingSeconds} seconds before requesting another OTP.`,
+        remainingSeconds,
       });
     }
 
-    // 4. Generate new OTP
+    // -------------------------
+    // GENERATE NEW OTP
+    // -------------------------
+
     const otp = generateOTP();
 
-    // 5. OTP expires in 10 minutes
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    // 6. Remove old OTP
-    await OTP.deleteMany({ email });
+    const resendAvailableAt = new Date(Date.now() + 60 * 1000);
 
-    // 7. Save new OTP
-    await OTP.create({
-      email,
-      otp,
-      expiresAt,
-      verified: false,
-    });
+    // -------------------------
+    // UPDATE OTP RECORD
+    // -------------------------
 
-    // 8. Send new OTP to Gmail
+    otpRecord.otp = otp;
+    otpRecord.expiresAt = otpExpiry;
+    otpRecord.otpResendAvailableAt = resendAvailableAt;
+    otpRecord.verified = false;
+
+    await otpRecord.save();
+
+    // -------------------------
+    // SEND NEW OTP
+    // -------------------------
+
     await sendOTPEmail(email, otp);
 
     return res.status(200).json({
       success: true,
-      message: "New OTP sent to your email successfully",
+      message: "OTP resent successfully. Please check your email.",
+      resendAvailableAt,
     });
   } catch (error) {
-    console.error("Resend OTP error:", error);
+    console.error("RESEND OTP ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -261,7 +410,6 @@ export const resendOTP = async (req, res) => {
     });
   }
 };
-
 export const logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
