@@ -12,7 +12,6 @@ import {
   logout,
   verifyToken,
   googleLogin,
-  // getCurrentUser,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -26,6 +25,5 @@ router.post("/logout", protect, logout);
 router.get("/verify-token", protect, verifyToken);
 router.post("/google", googleLogin);
 router.get("/check", protect, checkAuth);
-// router.get("/me", protect, getCurrentUser);
 
 export default router;

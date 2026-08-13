@@ -1,4 +1,3 @@
-// Initialize balance map for all group members
 export const initializeBalances = (members) => {
   const balances = {};
 
@@ -18,7 +17,6 @@ export const initializeBalances = (members) => {
   return balances;
 };
 
-// Add payment made by expense creator
 export const addPayment = (balances, paidBy, amount) => {
   const key = paidBy.toString();
 
@@ -30,7 +28,6 @@ export const addPayment = (balances, paidBy, amount) => {
   balances[key].paid += amount;
 };
 
-// Add amount owed by each participant
 export const addOwedAmount = (balances, participants) => {
   participants.forEach((participant) => {
     const key = participant.user.toString();
@@ -44,7 +41,6 @@ export const addOwedAmount = (balances, participants) => {
   });
 };
 
-// Calculate final balance
 export const calculateFinalBalances = (balances) => {
   Object.values(balances).forEach((user) => {
     user.balance = Number((user.paid - user.owes).toFixed(2));

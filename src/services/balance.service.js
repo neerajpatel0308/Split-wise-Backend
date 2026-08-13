@@ -32,19 +32,11 @@ export const calculateBalances = async (groupId) => {
 
   const balances = initializeBalances(group.members);
 
-  // -------------------------
-  // EXPENSES
-  // -------------------------
-
   expenses.forEach((expense) => {
     addPayment(balances, expense.paidBy, Number(expense.amount));
 
     addOwedAmount(balances, expense.participants);
   });
-
-  // -------------------------
-  // SETTLEMENTS
-  // -------------------------
 
   settlements.forEach((settlement) => {
     const payer = settlement.payer.toString();
@@ -55,10 +47,6 @@ export const calculateBalances = async (groupId) => {
     balances[payer].paid += amount;
     balances[receiver].paid -= amount;
   });
-
-  // -------------------------
-  // FINAL BALANCE
-  // -------------------------
 
   return calculateFinalBalances(balances);
 };

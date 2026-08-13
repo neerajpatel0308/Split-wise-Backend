@@ -22,7 +22,6 @@ export const simplifyDebts = (netBalances) => {
   const debtors = [];
   const creditors = [];
 
-  // Separate people who owe money and people who are owed money
   for (const [user, amount] of Object.entries(netBalances)) {
     if (amount < 0) debtors.push({ user, amount: Math.abs(amount) });
     else if (amount > 0) creditors.push({ user, amount });
@@ -30,8 +29,8 @@ export const simplifyDebts = (netBalances) => {
 
   const transactions = [];
 
-  let i = 0; // debtor pointer
-  let j = 0; // creditor pointer
+  let i = 0;
+  let j = 0;
 
   while (i < debtors.length && j < creditors.length) {
     const settlementAmount = Math.min(debtors[i].amount, creditors[j].amount);

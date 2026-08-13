@@ -9,7 +9,6 @@ const sendEmail = async (to, subject, html) => {
   });
 };
 
-// Send OTP email
 export const sendOTPEmail = async (email, otp) => {
   const html = `
     <!DOCTYPE html>

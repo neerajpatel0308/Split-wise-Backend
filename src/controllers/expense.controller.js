@@ -12,16 +12,17 @@ export const createExpense = async (req, res) => {
       paidBy,
       splitType,
       participants,
+      expenseDate,
     } = req.body;
 
-    // Validation
     if (
       !title ||
       !amount ||
       !groupId ||
       !paidBy ||
       !splitType ||
-      !participants?.length
+      !participants?.length ||
+      !expenseDate
     ) {
       return res.status(400).json({
         success: false,
@@ -29,7 +30,6 @@ export const createExpense = async (req, res) => {
       });
     }
 
-    // Check if group exists
     const group = await Group.findById(groupId);
 
     if (!group) {
@@ -39,7 +39,6 @@ export const createExpense = async (req, res) => {
       });
     }
 
-    // Check if current user belongs to the group
     if (
       !group.members.some((member) => member.toString() === paidBy.toString())
     ) {
@@ -48,8 +47,6 @@ export const createExpense = async (req, res) => {
         message: "You are not a member of this group.",
       });
     }
-    console.log("Request Body:", req.body);
-    console.log("Paid By:", paidBy);
 
     let finalParticipants = [];
     if (splitType === "equal") {
@@ -109,6 +106,7 @@ export const createExpense = async (req, res) => {
       group: groupId,
       splitType,
       participants: finalParticipants,
+      expenseDate: new Date(expenseDate),
     });
 
     res.status(201).json({

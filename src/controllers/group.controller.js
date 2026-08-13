@@ -13,7 +13,6 @@ export const createGroup = async (req, res) => {
       });
     }
 
-    // Add creator automatically and remove duplicates
     const allMembers = [...new Set([req.user._id.toString(), ...members])];
 
     const group = await Group.create({
@@ -147,12 +146,6 @@ export const getGroupById = async (req, res) => {
 export const getGroupDashboard = async (req, res) => {
   try {
     const { groupId } = req.params;
-
-    // 1. Get Group
-    // 2. Get Expenses
-    // 3. Calculate Balances
-    // 4. Total Expense
-    // 5. Return everything
     res.status(200).json({
       success: true,
     });

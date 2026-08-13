@@ -6,13 +6,7 @@ export const createSettlement = async (req, res) => {
   try {
     const { groupId, receiver, amount, note } = req.body;
 
-    // Logged-in user
     const payer = req.user._id;
-
-    // -------------------------
-    // VALIDATION
-    // -------------------------
-
     if (!groupId || !receiver || amount === undefined) {
       return res.status(400).json({
         success: false,
@@ -41,10 +35,6 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    // -------------------------
-    // FIND GROUP
-    // -------------------------
-
     const group = await Group.findById(groupId);
 
     if (!group) {
@@ -53,10 +43,6 @@ export const createSettlement = async (req, res) => {
         message: "Group not found.",
       });
     }
-
-    // -------------------------
-    // CHECK PAYER
-    // -------------------------
 
     const isPayerMember = group.members.some(
       (member) => member.toString() === payer.toString(),
@@ -69,10 +55,6 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    // -------------------------
-    // CHECK RECEIVER
-    // -------------------------
-
     const isReceiverMember = group.members.some(
       (member) => member.toString() === receiver.toString(),
     );
@@ -84,20 +66,12 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    // -------------------------
-    // PREVENT SELF SETTLEMENT
-    // -------------------------
-
     if (payer.toString() === receiver.toString()) {
       return res.status(400).json({
         success: false,
         message: "You cannot settle with yourself.",
       });
     }
-
-    // -------------------------
-    // CREATE SETTLEMENT
-    // -------------------------
 
     const settlement = await Settlement.create({
       group: groupId,
@@ -108,11 +82,6 @@ export const createSettlement = async (req, res) => {
       status: "completed",
       settledAt: new Date(),
     });
-
-    // -------------------------
-    // RESPONSE
-    // -------------------------
-
     return res.status(201).json({
       success: true,
       message: "Settlement created successfully.",

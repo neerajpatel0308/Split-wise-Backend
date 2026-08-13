@@ -19,7 +19,6 @@ export const searchUsers = async (req, res) => {
     }
 
     const users = await User.find({
-      // Don't return the logged-in user
       _id: { $ne: req.user._id },
 
       $or: [
@@ -108,7 +107,7 @@ export const updateAvatar = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({
-      _id: { $ne: req.user._id }, // Exclude logged-in user
+      _id: { $ne: req.user._id },
     }).select("-password");
 
     res.status(200).json({

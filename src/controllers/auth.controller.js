@@ -10,23 +10,12 @@ export const register = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
-    console.log("Registering user:", { fullName, email });
-
-    // -------------------------
-    // VALIDATION
-    // -------------------------
-
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
-
-    // -------------------------
-    // CHECK EXISTING USER
-    // -------------------------
-
     const userExists = await User.findOne({ email });
 
     if (userExists) {
@@ -35,27 +24,13 @@ export const register = async (req, res) => {
         message: "User already exists",
       });
     }
-
-    // -------------------------
-    // GENERATE OTP
-    // -------------------------
-
     const otp = generateOTP();
 
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
     const resendAvailableAt = new Date(Date.now() + 60 * 1000);
 
-    // -------------------------
-    // DELETE OLD OTP
-    // -------------------------
-
     await OTP.deleteMany({ email });
-
-    // -------------------------
-    // STORE TEMPORARY REGISTRATION
-    // -------------------------
-
     await OTP.create({
       fullName,
       email,
@@ -65,23 +40,13 @@ export const register = async (req, res) => {
       otpResendAvailableAt: resendAvailableAt,
     });
 
-    // -------------------------
-    // SEND OTP
-    // -------------------------
-
     await sendOTPEmail(email, otp);
-
-    // -------------------------
-    // RESPONSE
-    // -------------------------
 
     return res.status(201).json({
       success: true,
       message: "OTP sent to your email. Please verify your email.",
     });
   } catch (error) {
-    console.error("Registration error:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -93,20 +58,12 @@ export const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // -------------------------
-    // VALIDATION
-    // -------------------------
-
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
         message: "Email and OTP are required.",
       });
     }
-
-    // -------------------------
-    // FIND OTP
-    // -------------------------
 
     const otpRecord = await OTP.findOne({
       email,
@@ -120,10 +77,6 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    // -------------------------
-    // CHECK EXPIRY
-    // -------------------------
-
     if (otpRecord.expiresAt < new Date()) {
       await OTP.deleteOne({ _id: otpRecord._id });
 
@@ -132,11 +85,6 @@ export const verifyOTP = async (req, res) => {
         message: "OTP has expired. Please request a new OTP.",
       });
     }
-
-    // -------------------------
-    // CHECK USER AGAIN
-    // -------------------------
-
     const existingUser = await User.findOne({
       email,
     });
@@ -152,10 +100,6 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    // -------------------------
-    // CREATE USER
-    // -------------------------
-
     const user = await User.create({
       fullName: otpRecord.fullName,
       email: otpRecord.email,
@@ -163,17 +107,9 @@ export const verifyOTP = async (req, res) => {
       isVerified: true,
     });
 
-    // -------------------------
-    // DELETE OTP
-    // -------------------------
-
     await OTP.deleteOne({
       _id: otpRecord._id,
     });
-
-    // -------------------------
-    // RESPONSE
-    // -------------------------
 
     return res.status(201).json({
       success: true,
@@ -185,14 +121,13 @@ export const verifyOTP = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("VERIFY OTP ERROR:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -200,7 +135,6 @@ export const login = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    // User not found
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -208,7 +142,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check if email is verified
     if (!user.isVerified) {
       return res.status(403).json({
         success: false,
@@ -216,7 +149,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check password
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
@@ -252,7 +184,6 @@ export const verifyEmail = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Validate
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
@@ -260,7 +191,6 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Find user
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -270,7 +200,6 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Already verified
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
@@ -278,7 +207,6 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Find OTP
     const otpRecord = await OTP.findOne({
       email,
       otp,
@@ -292,7 +220,6 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Check expiration
     if (otpRecord.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
@@ -300,11 +227,9 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Mark OTP verified
     otpRecord.verified = true;
     await otpRecord.save();
 
-    // Mark user verified
     user.isVerified = true;
     await user.save();
 
@@ -313,8 +238,6 @@ export const verifyEmail = async (req, res) => {
       message: "Email verified successfully",
     });
   } catch (error) {
-    console.error("Verify email error:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -325,21 +248,12 @@ export const verifyEmail = async (req, res) => {
 export const resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
-
-    // -------------------------
-    // VALIDATION
-    // -------------------------
-
     if (!email) {
       return res.status(400).json({
         success: false,
         message: "Email is required.",
       });
     }
-
-    // -------------------------
-    // FIND TEMPORARY OTP RECORD
-    // -------------------------
 
     const otpRecord = await OTP.findOne({ email });
 
@@ -349,10 +263,6 @@ export const resendOTP = async (req, res) => {
         message: "Registration not found. Please register again.",
       });
     }
-
-    // -------------------------
-    // RATE LIMIT
-    // -------------------------
 
     if (
       otpRecord.otpResendAvailableAt &&
@@ -369,19 +279,11 @@ export const resendOTP = async (req, res) => {
       });
     }
 
-    // -------------------------
-    // GENERATE NEW OTP
-    // -------------------------
-
     const otp = generateOTP();
 
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
     const resendAvailableAt = new Date(Date.now() + 60 * 1000);
-
-    // -------------------------
-    // UPDATE OTP RECORD
-    // -------------------------
 
     otpRecord.otp = otp;
     otpRecord.expiresAt = otpExpiry;
@@ -389,10 +291,6 @@ export const resendOTP = async (req, res) => {
     otpRecord.verified = false;
 
     await otpRecord.save();
-
-    // -------------------------
-    // SEND NEW OTP
-    // -------------------------
 
     await sendOTPEmail(email, otp);
 
@@ -402,14 +300,13 @@ export const resendOTP = async (req, res) => {
       resendAvailableAt,
     });
   } catch (error) {
-    console.error("RESEND OTP ERROR:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
 export const logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
@@ -436,8 +333,6 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export const googleLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
-    // console.log("Google login credential:", idToken);
-
     if (!idToken) {
       return res.status(400).json({
         success: false,
@@ -451,7 +346,6 @@ export const googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-
     let user = await User.findOne({
       email: payload.email,
     });
@@ -469,7 +363,6 @@ export const googleLogin = async (req, res) => {
 
     const token = generateToken(user._id);
     res.cookie("token", token, cookieOptions);
-    console.log("Here is the token : ", token);
 
     return res.status(200).json({
       success: true,
@@ -498,17 +391,3 @@ export const checkAuth = async (req, res) => {
     });
   }
 };
-
-// export const getCurrentUser = async (req, res) => {
-//   try {
-//     return res.status(200).json({
-//       success: true,
-//       user: req.user,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };

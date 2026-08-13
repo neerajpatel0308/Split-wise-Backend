@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const otpSchema = new mongoose.Schema(
   {
-    // Temporary registration data
     fullName: {
       type: String,
       required: true,
@@ -48,7 +47,6 @@ const otpSchema = new mongoose.Schema(
   },
 );
 
-// Automatically delete expired OTP documents
 otpSchema.index(
   {
     expiresAt: 1,
