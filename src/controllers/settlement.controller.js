@@ -76,7 +76,12 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    const amountOwed = await calculatePairwiseDebt(groupId, payer, receiver);
+    const amountOwed = await calculatePairwiseDebt(
+      groupId,
+      payer,
+      receiver,
+      note,
+    );
 
     if (amountToSettle > amountOwed) {
       return res.status(400).json({
