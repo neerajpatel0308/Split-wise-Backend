@@ -26,6 +26,6 @@ const io = new Server(server, {
 // Initialize socket connection
 initializeSocket(io);
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
