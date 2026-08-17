@@ -1,6 +1,7 @@
 import Settlement from "../models/Settlement.js";
 import Group from "../models/Group.js";
 import mongoose from "mongoose";
+import { calculatePairwiseDebt } from "../utils/balance.utils.js";
 
 export const createSettlement = async (req, res) => {
   try {
@@ -28,10 +29,12 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    if (Number(amount) <= 0) {
+    const amountToSettle = Number(amount);
+
+    if (!Number.isFinite(amountToSettle) || amountToSettle <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Amount must be greater than 0.",
+        message: "Amount must be a valid number greater than 0.",
       });
     }
 
@@ -73,11 +76,21 @@ export const createSettlement = async (req, res) => {
       });
     }
 
+    const amountOwed = await calculatePairwiseDebt(groupId, payer, receiver);
+
+    if (amountToSettle > amountOwed) {
+      return res.status(400).json({
+        success: false,
+        message: `Settlement amount cannot be greater than the outstanding amount of ₹${amountOwed}.`,
+        outstandingAmount: amountOwed,
+      });
+    }
+
     const settlement = await Settlement.create({
       group: groupId,
       payer,
       receiver,
-      amount: Number(amount),
+      amount: amountToSettle,
       note: note || "",
       status: "completed",
       settledAt: new Date(),
@@ -88,8 +101,6 @@ export const createSettlement = async (req, res) => {
       settlement,
     });
   } catch (error) {
-    console.error("CREATE SETTLEMENT ERROR:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,

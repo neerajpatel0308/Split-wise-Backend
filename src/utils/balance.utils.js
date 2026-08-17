@@ -48,3 +48,67 @@ export const calculateFinalBalances = (balances) => {
 
   return Object.values(balances);
 };
+
+export const calculatePairwiseDebt = async (groupId, payerId, receiverId) => {
+  const expenses = await Expense.find({
+    group: groupId,
+  });
+
+  const settlements = await Settlement.find({
+    group: groupId,
+    status: "completed",
+  });
+
+  let amountOwed = 0;
+
+  // Calculate debt created by expenses
+  expenses.forEach((expense) => {
+    const paidBy = expense.paidBy.toString();
+
+    expense.participants.forEach((participant) => {
+      const participantId = participant.user.toString();
+      const participantAmount = Number(participant.amount);
+
+      // Payer owes Receiver
+      if (
+        paidBy === receiverId.toString() &&
+        participantId === payerId.toString()
+      ) {
+        amountOwed += participantAmount;
+      }
+
+      // Receiver owes Payer
+      if (
+        paidBy === payerId.toString() &&
+        participantId === receiverId.toString()
+      ) {
+        amountOwed -= participantAmount;
+      }
+    });
+  });
+
+  // Apply previous settlements
+  settlements.forEach((settlement) => {
+    const settlementPayer = settlement.payer.toString();
+    const settlementReceiver = settlement.receiver.toString();
+    const settlementAmount = Number(settlement.amount);
+
+    // Payer already paid Receiver
+    if (
+      settlementPayer === payerId.toString() &&
+      settlementReceiver === receiverId.toString()
+    ) {
+      amountOwed -= settlementAmount;
+    }
+
+    // Receiver already paid Payer
+    if (
+      settlementPayer === receiverId.toString() &&
+      settlementReceiver === payerId.toString()
+    ) {
+      amountOwed += settlementAmount;
+    }
+  });
+
+  return Math.max(0, Number(amountOwed.toFixed(2)));
+};

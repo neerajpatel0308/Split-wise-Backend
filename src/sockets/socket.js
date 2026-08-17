@@ -1,0 +1,112 @@
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import Group from "../models/Group.js";
+
+export const initializeSocket = (io) => {
+  // Socket authentication middleware
+  io.use(async (socket, next) => {
+    try {
+      const cookieHeader = socket.handshake.headers.cookie;
+
+      if (!cookieHeader) {
+        return next(new Error("Unauthorized. Please login."));
+      }
+
+      // Find token inside cookies
+      const tokenCookie = cookieHeader
+        .split(";")
+        .find((cookie) => cookie.trim().startsWith("token="));
+
+      if (!tokenCookie) {
+        return next(new Error("Unauthorized. Please login."));
+      }
+
+      const token = tokenCookie.trim().substring("token=".length);
+
+      // Verify JWT
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Find user
+      const user = await User.findById(decoded.id).select("-password");
+
+      if (!user) {
+        return next(new Error("User not found."));
+      }
+
+      // Attach user to socket
+      socket.user = user;
+
+      next();
+    } catch (error) {
+      console.error("SOCKET AUTH ERROR:", error.message);
+
+      next(new Error("Invalid or expired token."));
+    }
+  });
+
+  io.on("connection", (socket) => {
+    console.log(`🔌 User connected: ${socket.user.fullName} (${socket.id})`);
+
+    // Join a group
+    socket.on("join-group", async (groupId) => {
+      try {
+        if (!groupId) {
+          return socket.emit("chat-error", {
+            message: "Group ID is required.",
+          });
+        }
+
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+          return socket.emit("chat-error", {
+            message: "Group not found.",
+          });
+        }
+
+        // Check whether user belongs to this group
+        const isMember = group.members.some(
+          (member) => member.toString() === socket.user._id.toString(),
+        );
+
+        if (!isMember) {
+          return socket.emit("chat-error", {
+            message: "You are not a member of this group.",
+          });
+        }
+
+        const roomName = `group_${groupId}`;
+
+        socket.join(roomName);
+
+        console.log(`👥 ${socket.user.fullName} joined ${roomName}`);
+
+        socket.emit("group-joined", {
+          success: true,
+          groupId,
+          message: "Joined group chat successfully.",
+        });
+      } catch (error) {
+        console.error("JOIN GROUP ERROR:", error);
+
+        socket.emit("chat-error", {
+          message: "Unable to join group chat.",
+        });
+      }
+    });
+
+    // Leave a group
+    socket.on("leave-group", (groupId) => {
+      if (!groupId) return;
+      const roomName = `group_${groupId}`;
+
+      socket.leave(roomName);
+
+      console.log(`🚪 ${socket.user.fullName} left ${roomName}`);
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`❌ ${socket.user.fullName} disconnected`);
+    });
+  });
+};
