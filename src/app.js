@@ -10,6 +10,8 @@ import settlementRoutes from "./routes/settlement.routes.js";
 import path from "path";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import { fileURLToPath } from "url";
+import messageRoutes from "./routes/message.routes.js";
+
 // import transporter from "./config/mail.js";
 
 import morgan from "morgan";
@@ -39,5 +41,6 @@ app.use("/api/balances", balanceRoutes);
 app.use("/api/settlements", settlementRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/messages", messageRoutes);
 
 export default app;

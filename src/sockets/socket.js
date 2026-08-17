@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Group from "../models/Group.js";
+import Message from "../models/Message.js";
 
 export const initializeSocket = (io) => {
   // Socket authentication middleware
@@ -47,12 +48,19 @@ export const initializeSocket = (io) => {
   io.on("connection", (socket) => {
     console.log(`🔌 User connected: ${socket.user.fullName} (${socket.id})`);
 
-    // Join a group
+    // JOIN GROUP
     socket.on("join-group", async (groupId) => {
+      // your existing code
+    });
+
+    // SEND MESSAGE
+    socket.on("send-message", async (data) => {
       try {
-        if (!groupId) {
+        const { groupId, message } = data;
+
+        if (!groupId || !message?.trim()) {
           return socket.emit("chat-error", {
-            message: "Group ID is required.",
+            message: "Group ID and message are required.",
           });
         }
 
@@ -64,7 +72,6 @@ export const initializeSocket = (io) => {
           });
         }
 
-        // Check whether user belongs to this group
         const isMember = group.members.some(
           (member) => member.toString() === socket.user._id.toString(),
         );
@@ -75,22 +82,27 @@ export const initializeSocket = (io) => {
           });
         }
 
+        const newMessage = await Message.create({
+          group: groupId,
+          sender: socket.user._id,
+          message: message.trim(),
+        });
+
+        await newMessage.populate("sender", "fullName email");
+
         const roomName = `group_${groupId}`;
 
-        socket.join(roomName);
-
-        console.log(`👥 ${socket.user.fullName} joined ${roomName}`);
-
-        socket.emit("group-joined", {
+        io.to(roomName).emit("receive-message", {
           success: true,
-          groupId,
-          message: "Joined group chat successfully.",
+          message: newMessage,
         });
+
+        console.log(`💬 ${socket.user.fullName}: ${message.trim()}`);
       } catch (error) {
-        console.error("JOIN GROUP ERROR:", error);
+        console.error("SEND MESSAGE ERROR:", error);
 
         socket.emit("chat-error", {
-          message: "Unable to join group chat.",
+          message: "Unable to send message.",
         });
       }
     });
