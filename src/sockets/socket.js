@@ -3,11 +3,6 @@ import User from "../models/User.js";
 import Group from "../models/Group.js";
 import Message from "../models/Message.js";
 
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
-import Group from "../models/Group.js";
-import Message from "../models/Message.js";
-
 export const initializeSocket = (io) => {
   // ==========================================
   // SOCKET AUTHENTICATION
