@@ -4,9 +4,7 @@ import Group from "../models/Group.js";
 import Message from "../models/Message.js";
 
 export const initializeSocket = (io) => {
-  // ==========================================
   // SOCKET AUTHENTICATION
-  // ==========================================
 
   io.use(async (socket, next) => {
     try {
@@ -48,16 +46,12 @@ export const initializeSocket = (io) => {
     }
   });
 
-  // ==========================================
   // SOCKET CONNECTION
-  // ==========================================
 
   io.on("connection", (socket) => {
     console.log(`🔌 User connected: ${socket.user.fullName} (${socket.id})`);
 
-    // ==========================================
     // JOIN GROUP
-    // ==========================================
 
     socket.on("join-group", async (groupId) => {
       try {
@@ -110,9 +104,49 @@ export const initializeSocket = (io) => {
       }
     });
 
-    // ==========================================
+    // TYPING
+
+    socket.on("typing", ({ groupId }) => {
+      try {
+        if (!groupId) return;
+
+        const roomName = `group_${groupId}`;
+
+        // Send to everyone except the person typing
+        socket.to(roomName).emit("user-typing", {
+          userId: socket.user._id,
+          fullName: socket.user.fullName,
+          groupId,
+        });
+
+        console.log(`⌨️ ${socket.user.fullName} is typing in ${roomName}`);
+      } catch (error) {
+        console.error("TYPING ERROR:", error);
+      }
+    });
+
+    // STOP TYPING
+
+    socket.on("stop-typing", ({ groupId }) => {
+      try {
+        if (!groupId) return;
+
+        const roomName = `group_${groupId}`;
+
+        // Tell everyone except the person who stopped typing
+        socket.to(roomName).emit("user-stopped-typing", {
+          userId: socket.user._id,
+          fullName: socket.user.fullName,
+          groupId,
+        });
+
+        console.log(`⌨️ ${socket.user.fullName} stopped typing`);
+      } catch (error) {
+        console.error("STOP TYPING ERROR:", error);
+      }
+    });
+
     // SEND MESSAGE
-    // ==========================================
 
     socket.on("send-message", async (data) => {
       try {
@@ -173,9 +207,7 @@ export const initializeSocket = (io) => {
       }
     });
 
-    // ==========================================
     // LEAVE GROUP
-    // ==========================================
 
     socket.on("leave-group", (groupId) => {
       if (!groupId) return;
@@ -187,9 +219,7 @@ export const initializeSocket = (io) => {
       console.log(`🚪 ${socket.user.fullName} left ${roomName}`);
     });
 
-    // ==========================================
     // DISCONNECT
-    // ==========================================
 
     socket.on("disconnect", () => {
       console.log(`❌ ${socket.user.fullName} disconnected`);
