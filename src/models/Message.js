@@ -20,6 +20,19 @@ const messageSchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
+
+    seenBy: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        seenAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

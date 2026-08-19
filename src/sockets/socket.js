@@ -196,13 +196,92 @@ export const initializeSocket = (io) => {
           success: true,
           message: newMessage,
         });
-
         console.log(`💬 ${socket.user.fullName}: ${message.trim()}`);
       } catch (error) {
         console.error("SEND MESSAGE ERROR:", error);
 
         socket.emit("chat-error", {
           message: "Unable to send message.",
+        });
+      }
+    });
+
+    // MESSAGE SEEN
+
+    socket.on("message-seen", async ({ messageId, groupId }) => {
+      try {
+        if (!messageId || !groupId) {
+          return socket.emit("chat-error", {
+            message: "Message ID and Group ID are required.",
+          });
+        }
+
+        // Find group
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+          return socket.emit("chat-error", {
+            message: "Group not found.",
+          });
+        }
+
+        // Check whether user belongs to group
+        const isMember = group.members.some(
+          (member) => member.toString() === socket.user._id.toString(),
+        );
+
+        if (!isMember) {
+          return socket.emit("chat-error", {
+            message: "You are not a member of this group.",
+          });
+        }
+
+        // Find message
+        const message = await Message.findOne({
+          _id: messageId,
+          group: groupId,
+        });
+
+        if (!message) {
+          return socket.emit("chat-error", {
+            message: "Message not found.",
+          });
+        }
+
+        // Don't mark your own message as seen
+        if (message.sender.toString() === socket.user._id.toString()) {
+          return;
+        }
+
+        // Check if already seen
+        const alreadySeen = message.seenBy.some(
+          (item) => item.user.toString() === socket.user._id.toString(),
+        );
+
+        // Add user only if they haven't seen it
+        if (!alreadySeen) {
+          message.seenBy.push({
+            user: socket.user._id,
+            seenAt: new Date(),
+          });
+
+          await message.save();
+        }
+
+        // Notify everyone in group
+        io.to(`group_${groupId}`).emit("message-seen", {
+          messageId,
+          userId: socket.user._id,
+          fullName: socket.user.fullName,
+          seenAt: new Date(),
+        });
+
+        console.log(`👁️ ${socket.user.fullName} saw message ${messageId}`);
+      } catch (error) {
+        console.error("MESSAGE SEEN ERROR:", error);
+
+        socket.emit("chat-error", {
+          message: "Unable to mark message as seen.",
         });
       }
     });
