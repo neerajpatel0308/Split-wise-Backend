@@ -1,12 +1,23 @@
-import transporter from "../config/mail.js";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, html) => {
-  await transporter.sendMail({
-    from: `"SplitWise" <${process.env.EMAIL_USER}>`,
-    to,
+  const { data, error } = await resend.emails.send({
+    from: "SplitWise <onboarding@resend.dev>",
+    to: [to],
     subject,
     html,
   });
+
+  if (error) {
+    console.error("RESEND EMAIL ERROR:", error);
+    throw new Error(error.message || "Failed to send email");
+  }
+
+  console.log("EMAIL SENT:", data);
+
+  return data;
 };
 
 export const sendOTPEmail = async (email, otp) => {
@@ -72,7 +83,7 @@ export const sendOTPEmail = async (email, otp) => {
     </html>
   `;
 
-  await sendEmail(email, "SplitWise - Email Verification Code", html);
+  return await sendEmail(email, "SplitWise - Email Verification Code", html);
 };
 
 export default sendEmail;
