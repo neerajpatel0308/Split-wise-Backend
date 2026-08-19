@@ -5,7 +5,6 @@ import Message from "../models/Message.js";
 
 export const initializeSocket = (io) => {
   // SOCKET AUTHENTICATION
-
   io.use(async (socket, next) => {
     try {
       const cookieHeader = socket.handshake.headers.cookie;
@@ -47,12 +46,14 @@ export const initializeSocket = (io) => {
   });
 
   // SOCKET CONNECTION
-
   io.on("connection", (socket) => {
     console.log(`🔌 User connected: ${socket.user.fullName} (${socket.id})`);
 
-    // JOIN GROUP
+    // ACTIVE GROUP
+    socket.activeGroupId = null;
+    socket.unreadCounts = {};
 
+    // JOIN GROUP
     socket.on("join-group", async (groupId) => {
       try {
         if (!groupId) {
@@ -87,6 +88,9 @@ export const initializeSocket = (io) => {
         // Join group room
         socket.join(roomName);
 
+        // Store currently active group
+        socket.activeGroupId = groupId.toString();
+
         console.log(`👥 ${socket.user.fullName} joined ${roomName}`);
 
         // Tell frontend
@@ -105,7 +109,6 @@ export const initializeSocket = (io) => {
     });
 
     // TYPING
-
     socket.on("typing", ({ groupId }) => {
       try {
         if (!groupId) return;
@@ -133,7 +136,8 @@ export const initializeSocket = (io) => {
 
         const roomName = `group_${groupId}`;
 
-        // Tell everyone except the person who stopped typing
+        // Tell everyone except the person
+        // who stopped typing
         socket.to(roomName).emit("user-stopped-typing", {
           userId: socket.user._id,
           fullName: socket.user.fullName,
@@ -178,11 +182,23 @@ export const initializeSocket = (io) => {
           });
         }
 
-        // Create message
+        // =================================================
+        // CREATE MESSAGE
+        // =================================================
+
         const newMessage = await Message.create({
           group: groupId,
           sender: socket.user._id,
           message: message.trim(),
+
+          // Sender has already seen
+          // their own message
+          seenBy: [
+            {
+              user: socket.user._id,
+              seenAt: new Date(),
+            },
+          ],
         });
 
         // Populate sender
@@ -191,11 +207,76 @@ export const initializeSocket = (io) => {
         // Group room
         const roomName = `group_${groupId}`;
 
-        // Send message to everyone in group
+        // =================================================
+        // SEND MESSAGE TO GROUP
+        // =================================================
+
         io.to(roomName).emit("receive-message", {
           success: true,
           message: newMessage,
         });
+
+        // =================================================
+        // UPDATE UNREAD COUNT
+        // =================================================
+
+        /*
+            The sender should NOT receive
+            an unread count.
+
+            For every other connected socket:
+
+            If they are NOT currently viewing
+            this group:
+
+              previous count + 1
+          */
+
+        const sockets = await io.fetchSockets();
+
+        for (const userSocket of sockets) {
+          // Don't count the message
+          // for the sender
+          if (userSocket.user._id.toString() === socket.user._id.toString()) {
+            continue;
+          }
+
+          // Make sure this socket
+          // belongs to this group
+          const isGroupMember = group.members.some(
+            (member) => member.toString() === userSocket.user._id.toString(),
+          );
+
+          if (!isGroupMember) {
+            continue;
+          }
+
+          // User is currently viewing
+          // this group.
+          //
+          // Therefore don't increase
+          // unread count.
+          if (userSocket.activeGroupId === groupId.toString()) {
+            continue;
+          }
+
+          // Get previous count
+          const previousCount = userSocket.unreadCounts[groupId] || 0;
+
+          // Increase by 1
+          const newUnreadCount = previousCount + 1;
+
+          // Save in socket memory
+          userSocket.unreadCounts[groupId] = newUnreadCount;
+
+          // Send updated count
+          // only to that user
+          userSocket.emit("unread-count", {
+            groupId,
+            count: newUnreadCount,
+          });
+        }
+
         console.log(`💬 ${socket.user.fullName}: ${message.trim()}`);
       } catch (error) {
         console.error("SEND MESSAGE ERROR:", error);
@@ -205,9 +286,153 @@ export const initializeSocket = (io) => {
         });
       }
     });
+    // GET INITIAL UNREAD COUNT
 
-    // MESSAGE SEEN
+    socket.on("get-initial-unread-count", async ({ groupId }) => {
+      try {
+        if (!groupId) return;
 
+        // Check group
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+          return socket.emit("chat-error", {
+            message: "Group not found.",
+          });
+        }
+
+        // Check membership
+        const isMember = group.members.some(
+          (member) => member.toString() === socket.user._id.toString(),
+        );
+
+        if (!isMember) {
+          return socket.emit("chat-error", {
+            message: "You are not a member of this group.",
+          });
+        }
+
+        // Count unseen messages
+        const count = await Message.countDocuments({
+          group: groupId,
+
+          // Don't count own messages
+          sender: {
+            $ne: socket.user._id,
+          },
+
+          // User hasn't seen message
+          "seenBy.user": {
+            $ne: socket.user._id,
+          },
+        });
+
+        // Store count
+        socket.unreadCounts[groupId] = count;
+
+        // Send count to frontend
+        socket.emit("unread-count", {
+          groupId,
+          count,
+        });
+
+        console.log(
+          `📩 ${socket.user.fullName} has ${count} unread messages in ${groupId}`,
+        );
+      } catch (error) {
+        console.error("INITIAL UNREAD COUNT ERROR:", error);
+
+        socket.emit("chat-error", {
+          message: "Unable to get unread message count.",
+        });
+      }
+    });
+
+    // MARK ENTIRE GROUP AS SEEN
+
+    socket.on("mark-group-seen", async ({ groupId }) => {
+      try {
+        if (!groupId) {
+          return socket.emit("chat-error", {
+            message: "Group ID is required.",
+          });
+        }
+
+        // Find group
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+          return socket.emit("chat-error", {
+            message: "Group not found.",
+          });
+        }
+
+        // Check membership
+        const isMember = group.members.some(
+          (member) => member.toString() === socket.user._id.toString(),
+        );
+
+        if (!isMember) {
+          return socket.emit("chat-error", {
+            message: "You are not a member of this group.",
+          });
+        }
+
+        // Find unseen messages
+        const unseenMessages = await Message.find({
+          group: groupId,
+
+          // Don't mark own messages
+          sender: {
+            $ne: socket.user._id,
+          },
+
+          // Only messages not seen
+          // by current user
+          "seenBy.user": {
+            $ne: socket.user._id,
+          },
+        });
+
+        // Mark each message as seen
+        for (const message of unseenMessages) {
+          message.seenBy.push({
+            user: socket.user._id,
+            seenAt: new Date(),
+          });
+
+          await message.save();
+        }
+
+        // Reset unread count
+        socket.unreadCounts[groupId] = 0;
+
+        // Tell frontend
+        socket.emit("unread-count", {
+          groupId,
+          count: 0,
+        });
+
+        // Tell everyone in group
+        io.to(`group_${groupId}`).emit("group-messages-seen", {
+          groupId,
+          userId: socket.user._id,
+          fullName: socket.user.fullName,
+        });
+
+        console.log(
+          `👁️ ${socket.user.fullName} saw all messages in group ${groupId}`,
+        );
+      } catch (error) {
+        console.error("MARK GROUP SEEN ERROR:", error);
+
+        socket.emit("chat-error", {
+          message: "Unable to mark messages as seen.",
+        });
+      }
+    });
+
+    // INDIVIDUAL MESSAGE SEEN
     socket.on("message-seen", async ({ messageId, groupId }) => {
       try {
         if (!messageId || !groupId) {
@@ -225,7 +450,7 @@ export const initializeSocket = (io) => {
           });
         }
 
-        // Check whether user belongs to group
+        // Check membership
         const isMember = group.members.some(
           (member) => member.toString() === socket.user._id.toString(),
         );
@@ -248,7 +473,7 @@ export const initializeSocket = (io) => {
           });
         }
 
-        // Don't mark your own message as seen
+        // Don't mark your own message
         if (message.sender.toString() === socket.user._id.toString()) {
           return;
         }
@@ -258,7 +483,7 @@ export const initializeSocket = (io) => {
           (item) => item.user.toString() === socket.user._id.toString(),
         );
 
-        // Add user only if they haven't seen it
+        // Add user only if not seen
         if (!alreadySeen) {
           message.seenBy.push({
             user: socket.user._id,
@@ -285,9 +510,7 @@ export const initializeSocket = (io) => {
         });
       }
     });
-
     // LEAVE GROUP
-
     socket.on("leave-group", (groupId) => {
       if (!groupId) return;
 
@@ -295,11 +518,15 @@ export const initializeSocket = (io) => {
 
       socket.leave(roomName);
 
+      // If this was the active group,
+      if (socket.activeGroupId === groupId.toString()) {
+        socket.activeGroupId = null;
+      }
+
       console.log(`🚪 ${socket.user.fullName} left ${roomName}`);
     });
 
     // DISCONNECT
-
     socket.on("disconnect", () => {
       console.log(`❌ ${socket.user.fullName} disconnected`);
     });
