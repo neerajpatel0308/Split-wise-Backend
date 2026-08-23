@@ -171,6 +171,7 @@ export const login = async (req, res) => {
       success: true,
       message: "Login Successful",
       user,
+      token,
     });
   } catch (error) {
     res.status(500).json({
@@ -368,6 +369,7 @@ export const googleLogin = async (req, res) => {
       success: true,
       message: "Google Login Successful",
       user,
+      token,
     });
   } catch (error) {
     res.status(500).json({
