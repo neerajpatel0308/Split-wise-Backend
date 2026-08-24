@@ -4,6 +4,7 @@ import User from "../models/User.js";
 
 export const createGroup = async (req, res) => {
   try {
+   
     const { name, description, members = [] } = req.body;
 
     if (!name) {

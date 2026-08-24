@@ -8,6 +8,8 @@ import { cookieOptions } from "../config/cookie.js";
 
 export const register = async (req, res) => {
   try {
+    console.log("1. Register started");
+
     const { fullName, email, password } = req.body;
 
     if (!fullName || !email || !password) {
@@ -16,7 +18,12 @@ export const register = async (req, res) => {
         message: "All fields are required",
       });
     }
+
+    console.log("2. Checking MongoDB...");
+
     const userExists = await User.findOne({ email });
+
+    console.log("3. MongoDB query finished");
 
     if (userExists) {
       return res.status(400).json({
@@ -24,13 +31,18 @@ export const register = async (req, res) => {
         message: "User already exists",
       });
     }
+
+    console.log("4. Generating OTP");
+
     const otp = generateOTP();
 
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-
     const resendAvailableAt = new Date(Date.now() + 60 * 1000);
 
+    console.log("5. Saving OTP...");
+
     await OTP.deleteMany({ email });
+
     await OTP.create({
       fullName,
       email,
@@ -40,20 +52,28 @@ export const register = async (req, res) => {
       otpResendAvailableAt: resendAvailableAt,
     });
 
+    console.log("6. OTP saved");
+
+    console.log("7. Sending email...");
+
     await sendOTPEmail(email, otp);
+
+    console.log("8. Email sent");
 
     return res.status(201).json({
       success: true,
       message: "OTP sent to your email. Please verify your email.",
     });
+
   } catch (error) {
+    console.error("REGISTER ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 export const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;

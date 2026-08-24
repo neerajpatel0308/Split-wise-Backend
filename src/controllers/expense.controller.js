@@ -188,6 +188,7 @@ export const getExpensesByGroup = async (req, res) => {
   try {
     const { groupId } = req.params;
 
+
     const expenses = await Expense.find({ group: groupId })
       .populate("paidBy", "fullName email")
       .populate("participants.user", "fullName email");
