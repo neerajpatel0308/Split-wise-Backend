@@ -1,8 +1,8 @@
-import transporter from "../config/mail.js";
+import resend from "../config/mail.js";
 
 const sendEmail = async (to, subject, html) => {
-  await transporter.sendMail({
-    from: `"SplitWise" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: "SplitWise <onboarding@resend.dev>",
     to,
     subject,
     html,
