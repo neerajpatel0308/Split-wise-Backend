@@ -17,8 +17,8 @@ import {
 const router = express.Router();
 
 router.post("/register", register);
-router.post("/verify-otp", verifyOTP);
-router.post("/verify-email", verifyEmail);
+router.post("/verify-email", verifyOTP);
+router.post("/verify-otp", verifyEmail);
 router.post("/resend-otp", resendOTP);
 router.post("/login", login);
 router.post("/logout", protect, logout);
