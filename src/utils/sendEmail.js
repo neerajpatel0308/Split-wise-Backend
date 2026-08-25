@@ -1,12 +1,12 @@
 import resend from "../config/mail.js";
 
 const sendEmail = async (to, subject, html) => {
-  await resend.emails.send({
-    from: "SplitWise <onboarding@resend.dev>",
-    to,
-    subject,
-    html,
-  });
+ await resend.emails.send({
+  from: "SplitWise <noreply@my-app.in.net>",
+  to,
+  subject,
+  html,
+});
 };
 
 export const sendOTPEmail = async (email, otp) => {
