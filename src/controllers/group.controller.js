@@ -37,6 +37,8 @@ export const createGroup = async (req, res) => {
 };
 
 export const getGroups = async (req, res) => {
+  console.log("🔥 GET GROUPS CONTROLLER HIT");
+
   try {
     const groups = await Group.find({
       members: req.user._id,
@@ -44,12 +46,14 @@ export const getGroups = async (req, res) => {
       .populate("createdBy", "fullName email")
       .populate("members", "fullName email");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       groups,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("GET GROUPS ERROR:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
