@@ -9,7 +9,7 @@ console.log("Token exists:", !!req.cookies?.token);
     let token;
     if (!req.cookies?.token) {
   console.log("❌ 401 branch: no token in cookies");
-  return res.status(401).json({ ... });
+  return res.status(401).json({ message: "test-6"});
 }
 
     if (req.cookies?.token) {
@@ -34,7 +34,7 @@ console.log("Token exists:", !!req.cookies?.token);
     const user = await User.findById(decoded.id).select("-password");
 if (!user) {
   console.log("❌ 401 branch: User.findById returned null for id:", decoded.id);
-  return res.status(401).json({ ... });
+  return res.status(401).json({message: "test-6"});
 }
 
     if (!req.user) {
