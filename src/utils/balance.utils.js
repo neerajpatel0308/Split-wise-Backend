@@ -52,52 +52,46 @@ export const calculateFinalBalances = (balances) => {
   return Object.values(balances);
 };
 
-export const calculatePairwiseDebt = async (groupId, payerId, receiverId) => {
-  const expenses = await Expense.find({
-    group: groupId,
-  });
+export const calculateDirectDebts = (expenses) => {
+  const debts = {};
 
-  const settlements = await Settlement.find({
-    group: groupId,
-    status: "completed",
-  });
-
-  const payer = payerId.toString();
-  const receiver = receiverId.toString();
-
-  let payerOwesReceiver = 0;
-  let receiverOwesPayer = 0;
   expenses.forEach((expense) => {
-    const paidBy = expense.paidBy.toString();
+    const payer = expense.paidBy.toString();
 
     expense.participants.forEach((participant) => {
-      const participantId = participant.user.toString();
+      const debtor = participant.user.toString();
       const amount = Number(participant.amount);
 
-      if (paidBy === receiver && participantId === payer) {
-        payerOwesReceiver += amount;
-      }
- if (paidBy === payer && participantId === receiver) {
-        receiverOwesPayer += amount;
+      if (debtor === payer || amount <= 0) return;
+
+      const forwardKey = `${debtor}_${payer}`;
+      const reverseKey = `${payer}_${debtor}`;
+
+      if (debts[reverseKey]) {
+        if (debts[reverseKey] >= amount) {
+          debts[reverseKey] -= amount;
+        } else {
+          const remaining = amount - debts[reverseKey];
+
+          delete debts[reverseKey];
+
+          debts[forwardKey] = (debts[forwardKey] || 0) + remaining;
+        }
+      } else {
+        debts[forwardKey] = (debts[forwardKey] || 0) + amount;
       }
     });
   });
 
-  settlements.forEach((settlement) => {
-    const settlementPayer = settlement.payer.toString();
+  return Object.entries(debts)
+    .filter(([_, amount]) => amount > 0.01)
+    .map(([key, amount]) => {
+      const [from, to] = key.split("_");
 
-    const settlementReceiver = settlement.receiver.toString();
-
-    const amount = Number(settlement.amount);
-    if (settlementPayer === payer && settlementReceiver === receiver) {
-      payerOwesReceiver -= amount;
-    }
-    if (settlementPayer === receiver && settlementReceiver === payer) {
-      receiverOwesPayer -= amount;
-    }
-  });
-  const netDebt = payerOwesReceiver - receiverOwesPayer;
-
-  const finalDebt = Math.max(0, Number(netDebt.toFixed(2)));
-  return finalDebt;
+      return {
+        from,
+        to,
+        amount: Number(amount.toFixed(2)),
+      };
+    });
 };

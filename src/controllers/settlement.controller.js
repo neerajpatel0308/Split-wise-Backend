@@ -128,18 +128,31 @@ export const updateSettlement = async (req, res) => {
       });
     }
 
+    const userId = req.user._id.toString();
+
+    const isPayer = settlement.payer.toString() === userId;
+
+    const isReceiver = settlement.receiver.toString() === userId;
+
+    if (!isPayer && !isReceiver) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to update this settlement.",
+      });
+    }
+
     settlement.status = "completed";
     settlement.settledAt = new Date();
 
     await settlement.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Settlement completed",
       settlement,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

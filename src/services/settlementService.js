@@ -1,23 +1,26 @@
+import { calculatePairwiseDebt } from "../utils/balance.utils.js";
+
 export const calculateNetBalances = (expenses) => {
-  const balances = {}; // { userId: netBalance }
+  const balances = {};
 
   expenses.forEach((expense) => {
     const payer = expense.paidBy.toString();
-    const totalAmount = expense.amount;
+    const totalAmount = Number(expense.amount);
 
-    // 1. Credit the payer
+    // Credit the payer
     balances[payer] = (balances[payer] || 0) + totalAmount;
 
-    // 2. Debit the participants
-    expense.splitDetails.forEach((split) => {
-      const ower = split.user.toString();
-      balances[ower] = (balances[ower] || 0) - split.amountOwed;
+    // Debit participants
+    expense.participants.forEach((participant) => {
+      const user = participant.user.toString();
+      const amount = Number(participant.amount);
+
+      balances[user] = (balances[user] || 0) - amount;
     });
   });
 
   return balances;
 };
-
 export const simplifyDebts = (netBalances) => {
   const debtors = [];
   const creditors = [];
