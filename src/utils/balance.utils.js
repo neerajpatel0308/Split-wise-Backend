@@ -62,24 +62,23 @@ export const calculatePairwiseDebt = async (groupId, payerId, receiverId) => {
     status: "completed",
   });
 
-  let amountOwed = 0;
-
   const payer = payerId.toString();
   const receiver = receiverId.toString();
 
+  let payerOwesReceiver = 0;
+  let receiverOwesPayer = 0;
   expenses.forEach((expense) => {
     const paidBy = expense.paidBy.toString();
 
     expense.participants.forEach((participant) => {
       const participantId = participant.user.toString();
-      const participantAmount = Number(participant.amount);
+      const amount = Number(participant.amount);
 
       if (paidBy === receiver && participantId === payer) {
-        amountOwed += participantAmount;
+        payerOwesReceiver += amount;
       }
-
-      if (paidBy === payer && participantId === receiver) {
-        amountOwed -= participantAmount;
+ if (paidBy === payer && participantId === receiver) {
+        receiverOwesPayer += amount;
       }
     });
   });
@@ -89,15 +88,16 @@ export const calculatePairwiseDebt = async (groupId, payerId, receiverId) => {
 
     const settlementReceiver = settlement.receiver.toString();
 
-    const settlementAmount = Number(settlement.amount);
-
+    const amount = Number(settlement.amount);
     if (settlementPayer === payer && settlementReceiver === receiver) {
-      amountOwed -= settlementAmount;
+      payerOwesReceiver -= amount;
     }
     if (settlementPayer === receiver && settlementReceiver === payer) {
-      amountOwed += settlementAmount;
+      receiverOwesPayer -= amount;
     }
   });
+  const netDebt = payerOwesReceiver - receiverOwesPayer;
 
-  return Math.max(0, Number(amountOwed.toFixed(2)));
+  const finalDebt = Math.max(0, Number(netDebt.toFixed(2)));
+  return finalDebt;
 };
