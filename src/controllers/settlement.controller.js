@@ -76,12 +76,16 @@ export const createSettlement = async (req, res) => {
       });
     }
 
-    const amountOwed = await calculatePairwiseDebt(
-      groupId,
-      payer,
-      receiver,
-      note,
-    );
+    // Calculate actual outstanding debt
+    const amountOwed = await calculatePairwiseDebt(groupId, payer, receiver);
+
+    if (amountOwed <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No outstanding balance exists between these users.",
+        outstandingAmount: 0,
+      });
+    }
 
     if (amountToSettle > amountOwed) {
       return res.status(400).json({

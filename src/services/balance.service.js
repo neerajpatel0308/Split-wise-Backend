@@ -50,3 +50,47 @@ export const calculateBalances = async (groupId) => {
 
   return calculateFinalBalances(balances);
 };
+
+export const calculateDirectDebts = (expenses) => {
+  const debts = {};
+
+  expenses.forEach((expense) => {
+    const payer = expense.paidBy.toString();
+
+    expense.splitDetails.forEach((split) => {
+      const debtor = split.user.toString();
+      const amount = Number(split.amountOwed);
+
+      if (debtor === payer || amount <= 0) return;
+
+      const forwardKey = `${debtor}_${payer}`;
+      const reverseKey = `${payer}_${debtor}`;
+
+      if (debts[reverseKey]) {
+        if (debts[reverseKey] >= amount) {
+          debts[reverseKey] -= amount;
+        } else {
+          const remaining = amount - debts[reverseKey];
+
+          delete debts[reverseKey];
+
+          debts[forwardKey] = (debts[forwardKey] || 0) + remaining;
+        }
+      } else {
+        debts[forwardKey] = (debts[forwardKey] || 0) + amount;
+      }
+    });
+  });
+
+  return Object.entries(debts)
+    .filter(([_, amount]) => amount > 0.01)
+    .map(([key, amount]) => {
+      const [from, to] = key.split("_");
+
+      return {
+        from,
+        to,
+        amount: Number(amount.toFixed(2)),
+      };
+    });
+};
