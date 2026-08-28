@@ -64,7 +64,6 @@ export const register = async (req, res) => {
       success: true,
       message: "OTP sent to your email. Please verify your email.",
     });
-
   } catch (error) {
     console.error("REGISTER ERROR:", error);
 
@@ -180,7 +179,7 @@ export const login = async (req, res) => {
 
     const token = generateToken(user._id);
 
-   res.cookie("token", token, cookieOptions);
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       success: true,
